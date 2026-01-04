@@ -1,0 +1,240 @@
+{% extends "fabric/base.html" %}
+{% load formset_extras %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3><i class="fas fa-share-square"></i> Fabric Issue to Manufacturer</h3>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="row mb-3">
+      <div class="col-md-4">{{ issue_form.issue_number.label_tag }} {{ issue_form.issue_number }}</div>
+      <div class="col-md-4">{{ issue_form.issue_date.label_tag }} {{ issue_form.issue_date }}</div>
+      <div class="col-md-4">{{ issue_form.manufacturer.label_tag }} {{ issue_form.manufacturer }}</div>
+    </div>
+
+    <hr>
+    <h5><i class="fas fa-box-open"></i> Fabric Color Details</h5>
+    {{ item_formset.management_form }}
+
+    <div id="formset-area">
+        {% for form in item_formset %}
+<div class="row mb-2 border p-2 formset-row">
+    {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+    <div class="col-md-4">{{ form.fabric_lot.label_tag }} {{ form.fabric_lot }}</div>
+    <div class="col-md-4">{{ form.color_detail.label_tag }} {{ form.color_detail }}</div>
+    <div class="col-md-3">{{ form.meter_issued.label_tag }} {{ form.meter_issued }}</div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button type="button" class="btn btn-danger remove-row"><i class="fas fa-trash"></i></button>
+    </div>
+
+    {% if edit_mode and form.instance.pk %}
+    <div class="col-12 mt-2">
+        <h6>Size Breakdown for {{ form.instance.color_detail.color }}</h6>
+        {% with size_formset=size_formsets|index:forloop.counter0 %}
+    {{ size_formset.management_form }}
+    {% for sform in size_formset %}
+    <tr>
+        <td>{{ sform.size }}</td>
+        <td>{{ sform.quantity }}</td>
+        <td>{{ sform.DELETE }}</td>
+    </tr>
+    {% endfor %}
+{% endwith %}
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Size</th>
+                    <th>Quantity</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sform in size_formsets|index:forloop.counter0 %}
+                <tr>
+                    <td>{{ sform.size }}</td>
+                    <td>{{ sform.quantity }}</td>
+                    <td>{{ sform.DELETE }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+    </div>
+    <!-- 👇 Hidden template for cloning -->
+    <div id="empty-form" class="d-none">
+      <div class="row formset-row mb-2 border p-2">
+        {% for hidden in item_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="col-md-4">{{ item_formset.empty_form.fabric_lot }}</div>
+        <div class="col-md-4">{{ item_formset.empty_form.color_detail }}</div>
+        <div class="col-md-3">{{ item_formset.empty_form.meter_issued }}</div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button type="button" class="btn btn-danger remove-row"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-info mb-3" id="add-form">
+      <i class="fas fa-plus-circle"></i> Add Row
+    </button>
+    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Save Issue</button>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const formsetArea = document.getElementById('formset-area');
+  const addBtn = document.getElementById('add-form');
+  const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+
+  async function updateColorDropdown(fabricLotSelect, colorSelect) {
+  const lotId = fabricLotSelect.value;
+
+  if (!lotId) {
+    colorSelect.innerHTML = '<option value="">Select Color</option>';
+    return;
+  }
+
+  try {
+    const response = await fetch(`/ajax/get-colors/?lot_id=${lotId}`);
+    const data = await response.json();
+
+    colorSelect.innerHTML = '<option value="">Select Color</option>';
+    let hasAvailable = false;
+
+    data.forEach(color => {
+      if (color.meter > 0) {
+        const option = document.createElement('option');
+        option.value = color.id;
+        option.textContent = `${color.color} (${color.meter} m)`;
+        colorSelect.appendChild(option);
+        hasAvailable = true;
+      }
+    });
+
+    // Disable fabric lot if no colors are available
+    if (!hasAvailable) {
+      fabricLotSelect.classList.add('is-invalid');
+      fabricLotSelect.title = "This fabric lot has no available colors left.";
+      colorSelect.innerHTML = '<option value="">No colors available</option>';
+    } else {
+      fabricLotSelect.classList.remove('is-invalid');
+      fabricLotSelect.title = "";
+    }
+  } catch (error) {
+    console.error("Error fetching color data:", error);
+  }
+}
+
+function bindDropdownEvents(row) {
+  const fabricLotSelect = row.querySelector('select[name$="-fabric_lot"]');
+  const colorSelect = row.querySelector('select[name$="-color_detail"]');
+  const meterInput = row.querySelector('input[name$="-meter_issued"]');
+
+  if (fabricLotSelect && colorSelect) {
+    fabricLotSelect.addEventListener('change', () => {
+      updateColorDropdown(fabricLotSelect, colorSelect);
+    });
+
+    colorSelect.addEventListener('change', () => {
+      const selectedOption = colorSelect.options[colorSelect.selectedIndex];
+      const match = selectedOption.textContent.match(/\(([\d.]+) m\)/);
+      if (match) {
+        meterInput.max = match[1];  // Optional: set HTML max attribute
+      }
+    });
+
+    meterInput?.addEventListener('input', () => {
+      const selected = colorSelect.options[colorSelect.selectedIndex];
+      const match = selected?.textContent.match(/\(([\d.]+) m\)/);
+      if (match) {
+        const maxMeter = parseFloat(match[1]);
+        const entered = parseFloat(meterInput.value) || 0;
+        if (entered > maxMeter) {
+          meterInput.classList.add('is-invalid');
+          meterInput.title = `Only ${maxMeter} meters available`;
+        } else {
+          meterInput.classList.remove('is-invalid');
+          meterInput.title = '';
+        }
+      }
+    });
+  }
+}
+
+
+  // Bind existing rows
+  document.querySelectorAll('.formset-row').forEach(row => {
+    bindDropdownEvents(row);
+  });
+
+  // Add row
+  addBtn.addEventListener('click', () => {
+    const currentFormCount = parseInt(totalForms.value);
+    const lastForm = document.querySelector('.formset-row:last-child');
+    const newForm = lastForm.cloneNode(true);
+
+    // Replace index
+    newForm.innerHTML = newForm.innerHTML
+  .replace(/items-__prefix__/g, `items-${currentFormCount}`)
+  .replace(/items-(\d+)-/g, `items-${currentFormCount}-`);
+
+    newForm.querySelectorAll('input, select, textarea').forEach(input => {
+  if (input.name) {
+    input.name = input.name.replace(/items-(\d+)-/, `items-${currentFormCount}-`);
+  }
+  if (input.id) {
+    input.id = input.id.replace(/items-(\d+)-/, `items-${currentFormCount}-`);
+  }
+  if (input.type === 'hidden' && input.name.endsWith('-DELETE')) {
+    input.checked = false;
+  } else {
+    input.value = '';
+  }
+    });
+
+    newForm.style.display = '';
+    formsetArea.appendChild(newForm);
+    totalForms.value = currentFormCount + 1;
+
+    bindDropdownEvents(newForm);
+  });
+
+  // Handle delete row
+  formsetArea.addEventListener('click', function (e) {
+    if (e.target.closest('.remove-row')) {
+      const row = e.target.closest('.formset-row');
+      const deleteInput = row.querySelector('input[name$="-DELETE"]');
+      if (deleteInput) {
+        deleteInput.checked = true;
+        row.style.display = 'none';
+      } else {
+        row.remove(); // For new rows
+      }
+    }
+  });
+
+  function addSizeRow() {
+    let formCount = document.getElementById('id_sizes-TOTAL_FORMS');
+    let currentCount = parseInt(formCount.value);
+    let emptyRow = `
+        <tr>
+            <td><input type="text" name="sizes-${currentCount}-size" class="form-control"></td>
+            <td><input type="number" name="sizes-${currentCount}-quantity" class="form-control"></td>
+            <td><input type="checkbox" name="sizes-${currentCount}-DELETE"></td>
+        </tr>
+    `;
+    formCount.value = currentCount + 1;
+    document.querySelector('table tbody').insertAdjacentHTML('beforeend', emptyRow);
+}
+});
+
+
+</script>
+
+{% endblock %}

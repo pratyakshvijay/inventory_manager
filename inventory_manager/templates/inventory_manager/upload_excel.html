@@ -1,0 +1,30 @@
+{% extends 'inventory_manager/base.html' %}
+{% load static %}
+{% block content %}
+<h2>Upload Excel to Add Stock</h2>
+<a class="btn btn-outline-secondary mb-3" href="{% static 'inventory_manager/templates/stock_upload_template.xlsx' %}" download>
+  📥 Download Template
+</a>
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" action="{% url 'upload_excel' %}" enctype="multipart/form-data">{% csrf_token %}
+    <div class="mb-3">
+      <label for="excel_file" class="form-label">Upload Excel File</label>
+      <input type="file" name="excel_file" id="excel_file" accept=".xls,.xlsx" class="form-control" required>
+    </div>
+
+    <div class="form-check mt-2">
+      <input class="form-check-input" type="checkbox" name="reset_stock" id="reset_stock">
+      <label class="form-check-label" for="reset_stock">
+        <i class="fa-solid fa-arrow-rotate-left me-1"></i> Reset Stock (overwrite existing quantity)
+      </label>
+    </div>
+    <p class="text-muted small">If unchecked, the stock will be added to the current quantity.</p>
+
+    <button type="submit" class="btn btn-success">Upload</button>
+</form>
+{% endblock %}

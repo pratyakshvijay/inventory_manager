@@ -1,0 +1,69 @@
+{% extends 'inventory_manager/base.html' %}
+{% load static %}
+{% block content %}
+<h2>Manual Stock Adjustment</h2>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-success">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="mb-3">
+    <label for="id_sku">Search SKU:</label>
+    <input type="text" class="form-control mb-2" placeholder="Type to filter..." onkeyup="filterSKU(this.value)">
+    {{ form.sku }}
+    <div class="form-text" id="stockDisplay">Current Stock: —</div>
+  </div>
+
+  <div class="mb-3">
+    {{ form.quantity_change.label_tag }}
+    {{ form.quantity_change }}
+  </div>
+
+  <div class="mb-3">
+    {{ form.notes.label_tag }}
+    {{ form.notes }}
+  </div>
+
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="reset" id="id_reset">
+    <label class="form-check-label" for="id_reset">
+      Reset stock to this value (instead of adjusting it)
+    </label>
+  </div>
+
+  <button class="btn btn-primary">Adjust</button>
+</form>
+
+<a class="btn btn-outline-secondary mt-3" href="/">← Back to Dashboard</a>
+
+{{ stock_data|json_script:"sku-stock-data" }}
+
+<script>
+  function filterSKU(val) {
+    const select = document.getElementById("id_sku");
+    const options = select.options;
+    for (let i = 0; i < options.length; i++) {
+      const txt = options[i].text.toLowerCase();
+      options[i].style.display = txt.includes(val.toLowerCase()) ? "" : "none";
+    }
+  }
+
+  const stockData = JSON.parse(document.getElementById('sku-stock-data').textContent);
+  const skuSelect = document.getElementById('id_sku');
+  const stockDisplay = document.getElementById('stockDisplay');
+
+  skuSelect.addEventListener('change', function () {
+    const selected = this.value;
+    stockDisplay.innerText = selected ? 'Current Stock: ' + (stockData[selected] ?? '—') : 'Current Stock: —';
+  });
+
+  if (skuSelect.value) {
+    stockDisplay.innerText = 'Current Stock: ' + (stockData[skuSelect.value] ?? '—');
+  }
+</script>
+{% endblock %}

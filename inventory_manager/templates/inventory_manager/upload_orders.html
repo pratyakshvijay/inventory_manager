@@ -1,0 +1,12 @@
+{% extends 'inventory_manager/base.html' %}
+{% load static %}
+{% block content %}
+<h2>Upload Flipkart Order File</h2>
+<a class="btn btn-outline-secondary mb-3" href="{% static 'inventory_manager/templates/order_deduction_template.xlsx' %}" download>
+  📥 Download Template
+</a>
+<form method="post" action="{% url 'upload_orders' %}" enctype="multipart/form-data">{% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-warning">Upload and Deduct</button>
+</form>
+{% endblock %}

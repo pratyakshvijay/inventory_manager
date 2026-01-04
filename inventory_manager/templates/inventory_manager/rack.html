@@ -1,0 +1,97 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2>Rack Inventory</h2>
+
+<!-- 🔍 Search + Items Per Page -->
+<form method="get" class="row g-3 mb-3 align-items-end">
+  <div class="col-md-4">
+    <label>Search SKU or Product</label>
+    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by SKU or Product Name">
+  </div>
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-outline-primary w-100">
+      <i class="fa-solid fa-magnifying-glass me-1"></i> Search
+    </button>
+  </div>
+</form>
+
+<!-- 📁 Upload + Export Buttons -->
+<div class="d-flex justify-content-between mb-3">
+  <form method="post" enctype="multipart/form-data" action="{% url 'upload_rack_excel' %}">
+    {% csrf_token %}
+    <div class="row g-2">
+      <div class="col-md-7">
+        <input type="file" name="file" accept=".xls,.xlsx" required class="form-control">
+      </div>
+      <div class="col-md-3">
+        <select name="mode" class="form-select">
+          <option value="add">Add</option>
+          <option value="subtract">Subtract</option>
+          <option value="replace">Replace</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-success w-100">Upload</button>
+      </div>
+    </div>
+  </form>
+
+  <a href="{% url 'export_rack_excel' %}" class="btn btn-outline-success">
+    <i class="fa-solid fa-file-export me-1"></i> Export Excel
+  </a>
+</div>
+
+<p class="small text-muted">Excel should have columns: <strong>Master SKU</strong>, <strong>Qty</strong></p>
+
+<!-- 🧾 Rack Table -->
+<form method="post">
+  {% csrf_token %}
+  <table class="table table-bordered table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>
+          <a href="?{{ query_string }}&sort=sku__sku_code&dir={% if sort == 'sku__sku_code' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            SKU
+            {% if sort == 'sku__sku_code' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{{ query_string }}&sort=sku__product_name&dir={% if sort == 'sku__product_name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Product Name
+            {% if sort == 'sku__product_name' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{{ query_string }}&sort=quantity&dir={% if sort == 'quantity' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            Rack Quantity
+            {% if sort == 'quantity' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for rack in page_obj %}
+        <tr>
+          <td>{{ rack.sku.sku_code }}</td>
+          <td>{{ rack.sku.product_name }}</td>
+          <td>
+            <input type="number" name="qty_{{ rack.sku.id }}" value="{{ rack.quantity }}" class="form-control" min="0">
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="btn btn-primary mt-2">Update Rack Quantities</button>
+</form>
+
+<!-- 📄 Pagination -->
+{% include 'inventory_manager/components/pagination_footer.html' %}
+
+{% endblock %}

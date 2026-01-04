@@ -1,0 +1,33 @@
+{% extends "fabric/base.html" %}
+
+{% block title %}Vendors{% endblock %}
+
+{% block content %}
+<h2><i class="fas fa-users"></i> Vendors</h2>
+<a href="{% url 'vendor_add' %}" class="btn btn-primary mb-3"><i class="fas fa-plus"></i> Add Vendor</a>
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for vendor in vendors %}
+        <tr>
+            <td>{{ vendor.name }}</td>
+            <td>{{ vendor.contact }}</td>
+            <td>
+                <a href="{% url 'vendor_edit' vendor.pk %}" class="btn btn-sm btn-warning">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'vendor_delete' vendor.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Delete this vendor?');">
+                    <i class="fas fa-trash-alt"></i>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

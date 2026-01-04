@@ -1,0 +1,179 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2>Dashboard</h2>
+
+<!-- 🔢 Summary Cards -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="card text-bg-primary">
+      <div class="card-body">
+        <h5>Total SKUs</h5>
+        <h3>{{ total_skus }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-success">
+      <div class="card-body">
+        <h5>Total Stock</h5>
+        <h3>{{ total_stock }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-warning">
+      <div class="card-body">
+        <h5>Low Stock (&lt;10)</h5>
+        <h3>{{ low_stock }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-bg-danger">
+      <div class="card-body">
+        <h5>Out of Stock</h5>
+        <h3>{{ out_of_stock }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔄 Sync Inventory Form -->
+<form class="row g-2 mb-3" id="syncForm">
+  <div class="col-md-4">
+    <select class="form-select" id="syncProduct" name="product_name">
+      <option value="">All Products</option>
+      {% for name in product_names %}
+        <option value="{{ name }}" {% if name == selected_product %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-auto">
+    <button type="button" id="syncBtn" class="btn btn-outline-success shadow-sm">
+      <i class="fa-solid fa-rotate me-1"></i> Sync Inventory to Flipkart
+    </button>
+  </div>
+</form>
+
+<!-- 📊 Progress Bar -->
+<div class="progress mt-3" style="height: 25px; display: none;" id="progressContainer">
+  <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" style="width: 0%">
+    0%
+  </div>
+</div>
+
+<!-- 🔔 Sync Success Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+  <div id="syncToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">✅ Inventory synced successfully!</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<!-- 📊 Charts -->
+<div class="row">
+  <div class="col-md-6 mb-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Top 10 SKUs by Stock</h5>
+        <canvas id="barChart" style="width:100%; height:300px;"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 mb-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Stock Distribution</h5>
+        <canvas id="pieChart" style="width:100%; height:300px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 📈 Chart Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+
+  new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ top_skus_labels|safe }},
+      datasets: [{
+        label: 'Stock Qty',
+        data: {{ top_skus_data|safe }},
+        backgroundColor: '#0d6efd'
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 1000, easing: 'easeOutBounce' },
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+      labels: ['High Stock (10+)', 'Low Stock (1–9)', 'Out of Stock (0)'],
+      datasets: [{
+        data: [{{ high_stock }}, {{ low_stock }}, {{ out_of_stock }}],
+        backgroundColor: ['#198754', '#ffc107', '#dc3545']
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: {
+        animateRotate: true,
+        animateScale: true,
+        duration: 1000,
+        easing: 'easeOutQuart'
+      }
+    }
+  });
+
+  document.getElementById("syncBtn").addEventListener("click", function () {
+    const userConfirmed = confirm("Are you sure you want to sync inventory to Flipkart?");
+    if (!userConfirmed) return;
+  
+    const btn = this;
+    btn.disabled = true;
+
+    const bar = document.getElementById("progressBar");
+    const container = document.getElementById("progressContainer");
+    container.style.display = "block";
+
+    //const keyword = document.getElementById("syncFilter").value;
+    const selected = document.getElementById("syncProduct").value;
+    const formData = new FormData();
+    formData.append("product_name", selected);
+    //formData.append("product_filter", keyword);
+
+    fetch("{% url 'start_inventory_sync' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": "{{ csrf_token }}" },
+      body: formData
+    }).then(() => {
+      const poll = setInterval(() => {
+        fetch("{% url 'get_sync_progress' %}")
+          .then(res => res.json())
+          .then(data => {
+            bar.style.width = data.progress + "%";
+            bar.innerText = data.progress + "%";
+
+            if (data.progress >= 100) {
+              clearInterval(poll);
+              btn.disabled = false;
+              bar.innerText = "✅ Synced!";
+              new bootstrap.Toast(document.getElementById("syncToast")).show();
+            }
+          });
+      }, 800);
+    });
+  });
+</script>
+{% endblock %}

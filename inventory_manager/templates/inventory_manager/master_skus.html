@@ -1,0 +1,132 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2 class="mb-4">Master SKUs</h2>
+
+<div class="mb-3 d-flex justify-content-between">
+  <div>
+    <!-- 🔍 Search -->
+    <form method="get" class="row mb-3 g-2 align-items-center">
+      <div class="col-md-auto">
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="SKU or product name...">
+      </div>
+      <input type="hidden" name="sort" value="{{ sort }}">
+      <input type="hidden" name="dir" value="{{ dir }}">
+      <input type="hidden" name="per_page" value="{{ per_page }}">
+      <div class="col-md-auto">
+        <button class="btn btn-outline-primary">
+          <i class="fa-solid fa-magnifying-glass me-1"></i> Search
+        </button>
+      </div>
+    </form>
+  </div>
+  <!-- 📤 Export + Header -->
+  <div>
+    <a href="?export=1&q={{ query }}&sort={{ sort }}&dir={{ dir }}&per_page={{ per_page }}" class="btn btn-success mb-3 me-1">
+      <i class="fa-solid fa-file-excel me-1"></i> Export to Excel
+    </a>
+    <form method="post" action="{% url 'reset_master_stock' %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to reset all master SKU stock to 0?');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger mb-3">
+        <i class="fa-solid fa-circle-exclamation me-1"></i> Reset All to 0
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- 🧾 Styled Table -->
+<div class="mb-4">
+  <table class="table table-bordered table-striped align-middle shadow-sm">
+    <thead class="table-light text-dark fw-semibold">
+      <tr>
+        <th>
+          <a href="?sort=sku_code&dir={% if sort == 'sku_code' and dir == 'asc' %}desc{% else %}asc{% endif %}&q={{ query }}&per_page={{ per_page }}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-barcode me-1"></i> SKU Code
+            {% if sort == 'sku_code' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?sort=product_name&dir={% if sort == 'product_name' and dir == 'asc' %}desc{% else %}asc{% endif %}&q={{ query }}&per_page={{ per_page }}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-box-open me-1"></i> Product
+            {% if sort == 'product_name' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?sort=stock_quantity&dir={% if sort == 'stock_quantity' and dir == 'asc' %}desc{% else %}asc{% endif %}&q={{ query }}&per_page={{ per_page }}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-boxes-stacked me-1"></i> Quantity
+            {% if sort == 'stock_quantity' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sku in skus %}
+      <tr>
+        <td>{{ sku.sku_code }}</td>
+        <td>{{ sku.product_name }}</td>
+        <td>
+          <form class="d-flex align-items-center gap-2" onsubmit="event.preventDefault(); updateStock('{{ sku.id }}')">
+            <input type="number" min="0" class="form-control form-control-sm" id="stock-{{ sku.id }}" value="{{ sku.stock_quantity }}" style="width: 80px;">
+            <button type="submit" id="btn-{{ sku.id }}" class="btn btn-sm btn-outline-primary">
+              <i class="fa-solid fa-floppy-disk"></i>
+            </button>
+            <span id="check-{{ sku.id }}" class="text-success" style="display: none;">
+              <i class="fa-solid fa-check"></i>
+            </span>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="text-center text-muted">No SKUs found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- 📄 Pagination -->
+<div class="mt-4">
+  {% include 'inventory_manager/components/pagination_footer.html' %}
+</div>
+
+<!-- ⚙️ Inline Update Script -->
+<script>
+function updateStock(skuId) {
+  const quantity = document.getElementById('stock-' + skuId).value;
+  const btn = document.getElementById('btn-' + skuId);
+  const checkIcon = document.getElementById('check-' + skuId);
+
+  btn.disabled = true;
+  checkIcon.style.display = "none";
+
+  fetch("/ajax/update-stock/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}",
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: `sku_id=${skuId}&quantity=${quantity}&notes=Updated from Master SKUs`
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      checkIcon.style.display = "inline-block";
+      setTimeout(() => checkIcon.style.display = "none", 2000);
+    } else {
+      alert("❌ Error updating stock: " + (data.error || "unknown"));
+    }
+  })
+  .catch(() => alert("❌ Failed to connect."))
+  .finally(() => {
+    btn.disabled = false;
+  });
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2 class="mb-4">Mapped Alternate SKUs</h2>
+
+<!-- 🔍 Search -->
+<form method="get" class="row g-2 mb-3 align-items-center">
+  <div class="col-md-6">
+    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search Alternate SKU, Platform, Master SKU, Product Name...">
+  </div>
+  <div class="col-md-auto">
+    <button type="submit" class="btn btn-outline-primary">
+      <i class="fa-solid fa-magnifying-glass me-1"></i> Search
+    </button>
+  </div>
+</form>
+
+<!-- 📤 Export -->
+<div class="mb-3 d-flex justify-content-between align-items-center">
+  <h5 class="mb-0">Showing Alternate SKU Mappings</h5>
+  <a href="?export=1&q={{ query }}&per_page={{ per_page }}" class="btn btn-success">
+    <i class="fa-solid fa-file-excel me-1"></i> Export to Excel
+  </a>
+</div>
+
+<!-- 🧾 Flipkart SKU Mapping Table -->
+<div class="mb-4">
+  <table class="table table-bordered table-striped align-middle shadow-sm">
+    <thead class="table-light text-dark fw-semibold">
+      <tr>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=channel_sku&dir={% if sort == 'channel_sku' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-code me-1"></i> Flipkart SKU
+            {% if sort == 'channel_sku' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=fsn&dir={% if sort == 'fsn' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-barcode me-1"></i> FSN
+            {% if sort == 'fsn' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=master_sku__sku_code&dir={% if sort == 'master_sku__sku_code' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-barcode me-1"></i> Master SKU
+            {% if sort == 'master_sku__sku_code' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=master_sku__product_name&dir={% if sort == 'master_sku__product_name' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-box-open me-1"></i> Product Name
+            {% if sort == 'master_sku__product_name' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th><i class="fa-solid fa-gear me-1"></i> Actions</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for m in mappings %}
+      <tr>
+        <td>{{ m.channel_sku }}</td>
+        <td>{{ m.fsn }}</td>
+        <td>{{ m.master_sku.sku_code if m.master_sku }}</td>
+        <td>{{ m.master_sku.product_name if m.master_sku }}</td>
+        <td>
+          <form method="post" action="{% url 'delete_channel_listing' m.pk %}" style="display:inline-block;">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-danger" onclick="return confirm('Delete Flipkart SKU {{ m.channel_sku }}?')">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center text-muted">No mappings found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- 📄 Pagination -->
+<div class="mt-4">
+  {% include 'inventory_manager/components/pagination_footer.html' %}
+</div>
+
+{% endblock %}

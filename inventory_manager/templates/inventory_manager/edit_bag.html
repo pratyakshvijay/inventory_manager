@@ -1,0 +1,96 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2>Edit Bag - {{ bag.bag_number }}</h2>
+
+<form method="post" id="bagForm">
+  {% csrf_token %}
+  <div class="mb-3">
+    {{ bag_form.bag_number.label_tag }}
+    {{ bag_form.bag_number }}
+  </div>
+
+  <table class="table table-bordered" id="bagItemsTable">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Quantity</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for form in formset %}
+      <tr>
+        <td>{{ form.sku }}</td>
+        <td>{{ form.quantity }}</td>
+        <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="form-check mb-3">
+    {{ bag_form.reflect_in_rack }}
+    {{ bag_form.reflect_in_rack.label_tag }}
+  </div>
+
+  <button type="button" class="btn btn-secondary" id="addRowBtn">+ Add Row</button>
+  <button type="submit" class="btn btn-success">Save Bag</button>
+
+  <!-- Management form fields -->
+  <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="{{ formset.total_form_count }}">
+  <input type="hidden" name="form-INITIAL_FORMS" value="{{ formset.initial_form_count }}">
+  <input type="hidden" name="form-MIN_NUM_FORMS" value="0">
+  <input type="hidden" name="form-MAX_NUM_FORMS" value="1000">
+</form>
+
+<script>
+  function applySelect2() {
+    $('.sku-dropdown').select2({
+      width: '100%',
+      ajax: {
+        url: "{% url 'ajax_sku_search' %}",
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return { term: params.term };
+        },
+        processResults: function (data) {
+          return { results: data.results };
+        },
+        cache: true
+      },
+      placeholder: 'Search SKU...',
+      minimumInputLength: 1
+    });
+  }
+
+  $(document).ready(function () {
+    applySelect2();
+
+    $('#addRowBtn').on('click', function () {
+      const rowCount = $('#bagItemsTable tbody tr').length;
+      const newRow = `
+        <tr>
+          <td><select name="form-${rowCount}-sku" class="form-control sku-dropdown" required></select></td>
+          <td><input type="number" name="form-${rowCount}-quantity" class="form-control" min="1" required></td>
+          <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
+        </tr>
+      `;
+      $('#bagItemsTable tbody').append(newRow);
+      $('#id_form-TOTAL_FORMS').val(rowCount + 1);
+      applySelect2();
+      setTimeout(() => $(`#bagItemsTable tbody tr:last .sku-dropdown`).focus(), 100);
+    });
+
+    $(document).on('click', '.remove-row', function () {
+      $(this).closest('tr').remove();
+      const rows = $('#bagItemsTable tbody tr');
+      $('#id_form-TOTAL_FORMS').val(rows.length);
+      rows.each((index, row) => {
+        $(row).find('select').attr('name', `form-${index}-sku`);
+        $(row).find('input').attr('name', `form-${index}-quantity`);
+      });
+    });
+  });
+</script>
+{% endblock %}

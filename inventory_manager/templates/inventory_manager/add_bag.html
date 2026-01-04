@@ -1,0 +1,140 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2>Add Bag</h2>
+
+<form method="post" id="bagForm">
+  {% csrf_token %}
+  <div class="mb-3">
+    {{ bag_form.bag_number.label_tag }}
+    {{ bag_form.bag_number }}
+  </div>
+
+  <table class="table table-bordered" id="bagItemsTable">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Quantity</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for form in formset %}
+      <tr>
+        <td>{{ form.sku }}</td>
+        <div class="text-muted small rack-stock-info mt-1" data-index="{{ forloop.counter0 }}"></div>
+        <td>{{ form.quantity }}</td>
+        <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="reflectRack" name="reflect_in_rack">
+    <label class="form-check-label" for="reflectRack">
+      Reflect in Rack (consume from rack inventory)
+    </label>
+  </div>
+
+  <button type="button" class="btn btn-secondary" id="addRowBtn">+ Add Row</button>
+  <button type="submit" class="btn btn-success">Save Bag</button>
+
+  <!-- Management form fields -->
+  <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="{{ formset.total_form_count }}">
+  <input type="hidden" name="form-INITIAL_FORMS" value="{{ formset.initial_form_count }}">
+  <input type="hidden" name="form-MIN_NUM_FORMS" value="0">
+  <input type="hidden" name="form-MAX_NUM_FORMS" value="1000">
+</form>
+
+<script>
+  function applySelect2() {
+    $('.sku-dropdown').select2({
+      width: '100%',
+      ajax: {
+        url: "{% url 'ajax_sku_search' %}",
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+          return { term: params.term };
+        },
+        processResults: function (data) {
+          return { results: data.results };
+        },
+        cache: true
+      },
+      placeholder: 'Search SKU...',
+      minimumInputLength: 1
+    }).on('select2:select', function (e) {
+      const skuId = e.params.data.id;
+      const index = $(this).closest('tr').index();
+      updateRackStock(index, skuId);
+    });
+  }
+
+    function updateRackStock(index, skuId) {
+    const reflectChecked = $('#reflectRack').is(':checked');
+    if (!reflectChecked) {
+      $(`.rack-stock-info[data-index="${index}"]`).html('');
+      return;
+    }
+
+    fetch(`/ajax/rack-stock/?sku_id=${skuId}`)
+      .then(res => res.json())
+      .then(data => {
+        const el = $(`.rack-stock-info[data-index="${index}"]`);
+        if (data.success) {
+          el.html(`Available in rack: <strong>${data.quantity}</strong>`);
+        } else {
+          el.html(`<span class="text-danger">${data.message}</span>`);
+        }
+      });
+  }
+
+  $(document).ready(function () {
+    applySelect2();
+
+    $('#addRowBtn').on('click', function () {
+      const rowCount = $('#bagItemsTable tbody tr').length;
+      const newRow = `
+        <tr>
+          <td>
+            <select name="form-${rowCount}-sku" class="form-control sku-dropdown" required></select>
+            <div class="text-muted small rack-stock-info mt-1" data-index="${rowCount}"></div>
+          </td>
+          <td><input type="number" name="form-${rowCount}-quantity" class="form-control" min="1" required></td>
+          <td><button type="button" class="btn btn-danger btn-sm remove-row">Remove</button></td>
+        </tr>
+      `;
+      $('#bagItemsTable tbody').append(newRow);
+      $('#id_form-TOTAL_FORMS').val(rowCount + 1);
+      applySelect2();
+      setTimeout(() => $(`#bagItemsTable tbody tr:last .sku-dropdown`).focus(), 100);
+    });
+
+    // Update rack stock indicators on checkbox toggle
+    $('#reflectRack').on('change', function () {
+      if ($(this).is(':checked')) {
+        $('.sku-dropdown').each(function (i) {
+          const selectedSku = $(this).val();
+          if (selectedSku) {
+            updateRackStock(i, selectedSku);
+          }
+        });
+      } else {
+        $('.rack-stock-info').html('');
+      }
+    });
+  });
+
+    /*$(document).on('click', '.remove-row', function () {
+      $(this).closest('tr').remove();
+      const rows = $('#bagItemsTable tbody tr');
+      $('#id_form-TOTAL_FORMS').val(rows.length);
+      rows.each((index, row) => {
+        $(row).find('select').attr('name', `form-${index}-sku`);
+        $(row).find('input').attr('name', `form-${index}-quantity`);
+      });
+    });
+  }); */
+</script>
+{% endblock %}

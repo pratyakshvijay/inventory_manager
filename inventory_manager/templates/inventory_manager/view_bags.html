@@ -1,0 +1,92 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2 class="mb-3">Saved Bags</h2>
+
+<!-- 🔍 Filter -->
+<form method="get" class="row g-3 mb-4 align-items-end">
+  <div class="col-md-4">
+    <label>Search</label>
+    <input type="text" name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Search by SKU or Bag Number">
+  </div>
+  <div class="col-md-3">
+    <label>From Date</label>
+    <input type="date" name="from" value="{{ request.GET.from }}" class="form-control">
+  </div>
+  <div class="col-md-3">
+    <label>To Date</label>
+    <input type="date" name="to" value="{{ request.GET.to }}" class="form-control">
+  </div>
+  <div class="col-md-1">
+    <button type="submit" class="btn btn-primary w-100">
+      <i class="fa-solid fa-filter"></i>
+    </button>
+  </div>
+  <div class="col-md-1">
+    <a href="{% url 'view_bags' %}" class="btn btn-outline-secondary w-100">
+      <i class="fa-solid fa-xmark"></i>
+    </a>
+  </div>
+</form>
+
+
+<!-- Export -->
+<div class="mb-3 text-end">
+  <a href="?sku={{ sku_filter }}&from={{ date_from }}&to={{ date_to }}&export=1" class="btn btn-outline-success">
+    <i class="fa-solid fa-file-excel me-1"></i> Export to Excel
+  </a>
+</div>
+
+{% if bags %}
+  {% for bag in bags %}
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Bag: {{ bag.bag_number }}</strong>
+        <div class="d-flex gap-2 justify-content-between align-items-center">
+          <small class="text-muted">{{ bag.created_at|date:"d M Y, H:i" }}</small>
+          <div class="d-flex gap-2">
+            <a href="{% url 'edit_bag' bag.pk %}" class="btn btn-sm btn-outline-primary">
+              <i class="fa-solid fa-pen"></i> Edit
+            </a>
+            <form action="{% url 'delete_bag' bag.pk %}" method="post" class="d-flex align-items-center gap-2" onsubmit="return confirm('Are you sure?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+              <div class="form-check mb-0">
+                <input type="checkbox" name="reflect_in_rack" class="form-check-input" id="rackCheck{{ bag.id }}">
+                <label class="form-check-label small text-muted" for="rackCheck{{ bag.id }}">
+                  Move to Rack
+                </label>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>SKU</th>
+              <th>Product Name</th>
+              <th>Quantity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in bag.items.all %}
+              <tr>
+                <td>{{ item.sku.sku_code }}</td>
+                <td>{{ item.product_name }}</td>
+                <td>{{ item.quantity }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="alert alert-info">No bags found.</div>
+{% endif %}
+
+<!-- Pagination Footer -->
+{% include 'inventory_manager/components/pagination_footer.html' %}
+
+{% endblock %}

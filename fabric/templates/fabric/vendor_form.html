@@ -1,0 +1,13 @@
+{% extends "fabric/base.html" %}
+
+{% block title %}Vendor Form{% endblock %}
+
+{% block content %}
+<h2><i class="fas fa-user-plus"></i> Vendor Form</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-success"><i class="fas fa-save"></i> Save</button>
+    <a href="{% url 'vendor_list' %}" class="btn btn-secondary">Back</a>
+</form>
+{% endblock %}

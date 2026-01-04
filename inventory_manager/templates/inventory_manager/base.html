@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventory Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- jQuery (required by Select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <style>
+        body { margin: 0; padding: 0; }
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #343a40;
+            padding-top: 20px;
+            transition: all 0.3s;
+            z-index: 1030;
+        }
+        .sidebar a {
+            color: #fff;
+            padding: 10px 20px;
+            display: block;
+            text-decoration: none;
+        }
+        .sidebar a:hover, .sidebar .nav-item .active {
+            background-color: #495057;
+        }
+        .content {
+            margin-left: 260px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        .toggle-btn {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 1040;
+        }
+        @media (max-width: 768px) {
+            .sidebar { left: -250px; }
+            .sidebar.active { left: 0; }
+            .content { margin-left: 0; margin-top: 60px; }
+        }
+    </style>
+</head>
+<body>
+    {% if messages %}
+  <div id="popup-message" class="alert alert-success shadow position-fixed top-0 start-50 translate-middle-x mt-3 text-center" style="z-index: 1055; min-width: 300px;">
+    {% for message in messages %}
+      {{ message }}
+    {% endfor %}
+  </div>
+  <script>
+    setTimeout(() => {
+        const popup = document.getElementById("popup-message");
+        if (popup) popup.remove();
+        }, 3000);
+    </script>
+    {% endif %}
+
+    <button class="btn btn-outline-secondary toggle-btn d-md-none">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+    {% if request.user.is_authenticated %}
+    <div class="sidebar" id="sidebar">
+        <a href="{% url 'dashboard' %}" class="mb-3 px-3 py-2 d-block text-white {% if request.path == '/' %}active{% endif %}">
+            <i class="fa-solid fa-house me-1"></i> Home
+        </a>
+
+        <!-- SKU Management -->
+        <div class="nav-item">
+            <a class="text-white d-block px-3 py-2" data-bs-toggle="collapse" href="#skuMenu" role="button" aria-expanded="false">
+                <i class="fa-solid fa-barcode me-1"></i> SKU Management
+            </a>
+            <div class="collapse" id="skuMenu">
+                <ul class="list-unstyled ps-3">
+                    <li><a class="dropdown-item text-white {% if request.path == '/master-skus/' %}active{% endif %}" href="{% url 'master_skus' %}"><i class="fa-solid fa-database me-1"></i> View Master SKUs</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/add-sku/' %}active{% endif %}" href="{% url 'add_sku' %}"><i class="fa-solid fa-plus me-1"></i> Add SKU</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/upload-sku-excel/' %}active{% endif %}" href="{% url 'upload_sku_excel' %}"><i class="fa-solid fa-file-arrow-up me-1"></i> Upload Master SKUs</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/channel/mapping/' %}active{% endif %}" href="{% url 'view_channel_listings' %}"><i class="fa-solid fa-link me-1"></i> Alternate SKUs</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/channel/upload/' %}active{% endif %}" href="{% url 'upload_channel_listing' %}"><i class="fa-solid fa-file-import me-1"></i> Upload Alternate SKUs</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Inventory -->
+        <div class="nav-item">
+            <a class="text-white d-block px-3 py-2" data-bs-toggle="collapse" href="#inventoryMenu" role="button" aria-expanded="false">
+                <i class="fa-solid fa-boxes-stacked me-1"></i> Inventory
+                {% if low_stock_count > 0 %}
+                    <span class="badge bg-danger ms-2">{{ low_stock_count }} low</span>
+                {% endif %}
+            </a>
+            <div class="collapse" id="inventoryMenu">
+                <ul class="list-unstyled ps-3">
+                    <li><a class="text-white d-block py-1 {% if request.path == '/upload-excel/' %}active{% endif %}" href="{% url 'upload_excel' %}"><i class="fa-solid fa-file-excel me-1"></i> Add Stock (Excel)</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/upload-orders/' %}active{% endif %}" href="{% url 'upload_orders' %}"><i class="fa-solid fa-truck-ramp-box me-1"></i> Upload Orders (Deduct)</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/adjust/' %}active{% endif %}" href="{% url 'manual_adjust' %}"><i class="fa-solid fa-sliders me-1"></i> Manual Adjustment</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/inventory-history/' %}active{% endif %}" href="{% url 'inventory_history' %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Inventory History</a></li>
+                    <li><a class="dropdown-item text-white {% if request.path == '/low-stock/' %}active{% endif %}" href="{% url 'low_stock_alert' %}"><i class="fa-solid fa-triangle-exclamation me-1"></i> Low Stock Alerts</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/sync-logs/' %}active{% endif %}" href="{% url 'sync_logs' %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Sync Logs</a></li>
+                </ul>
+            </div> 
+        </div>
+
+        <!-- Rack Section -->
+        <div class="nav-item">
+            <a class="text-white d-block px-3 py-2 {% if request.path == '/rack/' %}active{% endif %}" href="{% url 'rack_view' %}">
+                <i class="fa-solid fa-warehouse me-1"></i> Rack Inventory
+            </a>
+        </div>
+
+        <!-- Bags -->
+        <div class="nav-item">
+        <a class="text-white d-block px-3 py-2" data-bs-toggle="collapse" href="#bagsMenu" role="button" aria-expanded="false">
+            <i class="fa-solid fa-suitcase me-1"></i> Bag Management
+        </a>
+            <div class="collapse" id="bagsMenu">
+                <ul class="list-unstyled ps-3">
+                <li>
+                    <a class="text-white d-block py-1 {% if request.path == '/bags/add/' %}active{% endif %}" href="{% url 'add_bag' %}">
+                    <i class="fa-solid fa-plus me-1"></i> Add Bag
+                    </a>
+                </li>
+                <li>
+                    <a class="text-white d-block py-1 {% if request.path == '/bags/' %}active{% endif %}" href="{% url 'view_bags' %}">
+                    <i class="fa-solid fa-bag-shopping me-1"></i> View Bags
+                    </a>
+                </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Total Stock Count -->
+        <div class="text-white small px-3 mt-2">
+            <i class="fa-solid fa-database me-1"></i>
+            Total Stock: <strong>{{ total_stock }}</strong>
+        </div>
+
+        <hr class="bg-secondary mx-3">
+
+        <a class="nav-link {% if '/fabric/' in request.path %}active{% endif %}" href="/fabric/"><i class="fas fa-boxes"></i> Go to Fabric</a>
+
+        <div class="px-3 py-2 text-white small">
+            <div class="d-flex flex-column">
+            <span class="mb-1">
+                <i class="fa-solid fa-user-circle me-1"></i> Welcome, <strong>{{ request.user.username }}</strong>
+            </span>
+            <form method="post" action="{% url 'logout' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-light">
+                    <i class="fa-solid fa-sign-out-alt me-1"></i> Logout
+                </button>
+            </form>
+            </div>
+        {% else %}
+            <div class="d-flex flex-column">
+            <a href="{% url 'login' %}" class="btn btn-sm btn-outline-light mb-2">
+                <i class="fa-solid fa-sign-in-alt me-1"></i> Login
+            </a>
+            <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light">
+                <i class="fa-solid fa-user-plus me-1"></i> Register
+            </a>
+            </div>
+        {% endif %}
+         </div>
+    </div>
+
+    <div class="content {% if not user.is_authenticated %}w-100{% endif %}" id="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelector(".toggle-btn").addEventListener("click", function () {
+            document.getElementById("sidebar").classList.toggle("active");
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2>Inventory History</h2>
+
+<!-- 🔍 Search Form -->
+<form method="get" class="row g-2 mb-2 align-items-center">
+  <div class="col-md-6">
+    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search SKU, source, or note...">
+  </div>
+  <div class="col-md-auto">
+    <button class="btn btn-outline-primary">
+      <i class="fa-solid fa-magnifying-glass me-1"></i> Search
+    </button>
+  </div>
+</form>
+
+<!-- 📅 Date Range + Quick Filters -->
+<form method="get" class="row g-2 mb-3 align-items-end">
+  <input type="hidden" name="q" value="{{ query }}">
+  
+  <div class="col-md-3">
+    <label for="start" class="form-label">From</label>
+    <input type="date" name="start" id="start" value="{{ start }}" class="form-control">
+  </div>
+  
+  <div class="col-md-3">
+    <label for="end" class="form-label">To</label>
+    <input type="date" name="end" id="end" value="{{ end }}" class="form-control">
+  </div>
+
+  <div class="col-md-auto d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-outline-primary">
+      <i class="fa-solid fa-filter me-1"></i> Apply
+    </button>
+    <a href="{% url 'inventory_history' %}" class="btn btn-secondary">
+      <i class="fa-solid fa-rotate-left me-1"></i> Reset
+    </a>
+    <button type="submit" name="export" value="1" class="btn btn-success">
+      <i class="fa-solid fa-file-excel me-1"></i> Export
+    </button>
+  </div>
+</form>
+
+
+<!-- Table -->
+<table class="table table-bordered table-striped">
+  <thead>
+    <tr>
+      <th><i class="fa-solid fa-calendar-day me-1"></i> Date</th>
+      <th><i class="fa-solid fa-barcode me-1"></i> SKU Code</th>
+      <th><i class="fa-solid fa-box-open me-1"></i> Product</th>
+      <th><i class="fa-solid fa-arrows-up-down me-1"></i> Change</th>
+      <th><i class="fa-solid fa-circle-info me-1"></i> Source</th>
+      <th><i class="fa-solid fa-comment me-1"></i> Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for txn in page_obj %}
+    <tr>
+      <td>{{ txn.timestamp|date:"Y-m-d h:i A" }}</td>
+      <td>{{ txn.sku.sku_code }}</td>
+      <td>{{ txn.sku.product_name }}</td>
+      <td>
+        {% if txn.quantity_change > 0 %}
+          <span class="text-success fw-semibold">+{{ txn.quantity_change }}</span>
+        {% else %}
+          <span class="text-danger fw-semibold">{{ txn.quantity_change }}</span>
+        {% endif %}
+      </td>
+      <td><span class="badge bg-secondary">{{ txn.get_source_display }}</span></td>
+      <td>{{ txn.notes|default:"—" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" class="text-center text-muted">No transactions found.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- Reusable footer -->
+{% include 'inventory_manager/components/pagination_footer.html' %}
+
+{% endblock %}

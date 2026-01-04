@@ -1,0 +1,31 @@
+{% extends 'inventory_manager/base.html' %}
+{% load static %}
+{% block content %}
+<h2 class="mb-4">Upload Master SKUs</h2>
+
+<!-- Download Template -->
+<a class="btn btn-outline-secondary mb-4" href="{% static 'inventory_manager/templates/sku_upload_template.xlsx' %}" download>
+  <i class="fa-solid fa-download me-1"></i> Download Excel Template
+</a>
+
+<!-- Upload Form -->
+<form method="post" enctype="multipart/form-data" class="row g-3 col-md-6">
+  {% csrf_token %}
+
+  <div class="col-12">
+    <label for="excel_file" class="form-label fw-semibold">Choose Excel File</label>
+    <input type="file" name="excel_file" id="excel_file" accept=".xls,.xlsx" class="form-control" required>
+  </div>
+
+  <div class="col-12 mt-2">
+    <button type="submit" class="btn btn-success">
+      <i class="fa-solid fa-upload me-1"></i> Upload
+    </button>
+  </div>
+</form>
+
+<!-- Help Text -->
+<p class="mt-4 text-muted">
+  Required columns: <strong>SKU Code</strong>, <strong>Product Name</strong>, <strong>Stock</strong>
+</p>
+{% endblock %}

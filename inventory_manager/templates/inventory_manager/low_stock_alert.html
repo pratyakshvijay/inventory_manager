@@ -1,0 +1,125 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2 class="mb-4">Low Stock Alert</h2>
+
+<!-- 🔢 Threshold Filter -->
+<form method="get" class="row g-2 mb-3 align-items-end">
+  <div class="col-md-3">
+    <label for="threshold" class="form-label fw-semibold">Set Threshold</label>
+    <input type="number" name="threshold" value="{{ threshold }}" class="form-control" min="0">
+  </div>
+
+  <div class="col-md-auto d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-outline-primary">
+      <i class="fa-solid fa-filter me-1"></i> Apply
+    </button>
+    <a href="?export=1&threshold={{ threshold }}" class="btn btn-success">
+      <i class="fa-solid fa-file-excel me-1"></i> Export to Excel
+    </a>
+  </div>
+</form>
+
+<!-- 📦 Styled Table with Inventory History Look -->
+<div class="mb-4">
+  <table class="table table-bordered table-striped align-middle shadow-sm">
+    <thead class="table-light text-dark fw-semibold">
+      <tr>
+        <th>
+          <a href="?sort=sku_code&dir={% if sort == 'sku_code' and dir == 'asc' %}desc{% else %}asc{% endif %}&threshold={{ threshold }}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-barcode me-1"></i> SKU Code
+            {% if sort == 'sku_code' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?sort=product_name&dir={% if sort == 'product_name' and dir == 'asc' %}desc{% else %}asc{% endif %}&threshold={{ threshold }}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-box-open me-1"></i> Product
+            {% if sort == 'product_name' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?sort=stock_quantity&dir={% if sort == 'stock_quantity' and dir == 'asc' %}desc{% else %}asc{% endif %}&threshold={{ threshold }}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-boxes-stacked me-1"></i> Quantity
+            {% if sort == 'stock_quantity' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sku in page_obj %}
+      <tr class="
+          {% if sku.stock_quantity == 0 %}
+            table-danger
+          {% elif sku.stock_quantity <= 3 %}
+            table-warning
+          {% else %}
+            table-light
+          {% endif %}
+      ">
+        <td>{{ sku.sku_code }}</td>
+        <td>{{ sku.product_name }}</td>
+        <td>
+          <form class="d-flex align-items-center gap-2" onsubmit="event.preventDefault(); updateStock('{{ sku.id }}')">
+            <input type="number" class="form-control form-control-sm" id="stock-{{ sku.id }}" value="{{ sku.stock_quantity }}" style="width: 80px;" min="0">
+            <button type="submit" class="btn btn-sm btn-outline-primary" id="btn-{{ sku.id }}">
+              <i class="fa-solid fa-floppy-disk"></i>
+            </button>
+            <span id="check-{{ sku.id }}" class="text-success" style="display: none;">
+              <i class="fa-solid fa-check"></i>
+            </span>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" class="text-center text-muted">No SKUs under this threshold.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- 📄 Pagination -->
+<div class="mt-4">
+  {% include 'inventory_manager/components/pagination_footer.html' %}
+</div>
+
+<!-- ⚙️ Inline Update Script -->
+<script>
+function updateStock(skuId) {
+  const quantity = document.getElementById('stock-' + skuId).value;
+  const btn = document.getElementById('btn-' + skuId);
+  const checkIcon = document.getElementById('check-' + skuId);
+
+  btn.disabled = true;
+  checkIcon.style.display = "none";
+
+  fetch("/ajax/update-stock/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": "{{ csrf_token }}",
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: `sku_id=${skuId}&quantity=${quantity}&notes=Updated from Low Stock Alert`
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      checkIcon.style.display = "inline-block";
+      setTimeout(() => checkIcon.style.display = "none", 2000);
+    } else {
+      alert("❌ Error updating stock: " + (data.error || "unknown"));
+    }
+  })
+  .catch(() => alert("❌ Failed to connect."))
+  .finally(() => {
+    btn.disabled = false;
+  });
+}
+</script>
+{% endblock %}

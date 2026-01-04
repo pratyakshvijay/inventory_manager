@@ -1,0 +1,25 @@
+{% extends 'inventory_manager/base.html' %}
+{% load form_tags %}
+{% block content %}
+<div class="container mt-5" style="max-width: 500px;">
+  <h2 class="mb-4 text-center">Register</h2>
+
+  <form method="post" class="shadow p-4 bg-light rounded">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field|add_form_control }}
+        {% if field.errors %}
+          <div class="text-danger small">{{ field.errors|striptags }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-success w-100">Register</button>
+  </form>
+
+  <p class="text-center mt-3">Already have an account?
+    <a href="{% url 'login' %}">Login here</a>
+  </p>
+</div>
+{% endblock %}

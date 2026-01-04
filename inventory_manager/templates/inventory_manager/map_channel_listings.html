@@ -1,0 +1,172 @@
+{% extends 'inventory_manager/base.html' %}
+{% block content %}
+<h2>Map Alternate SKUs to Master SKUs</h2>
+
+<!-- ✅ Show Messages -->
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+      {{ message }}
+      {% if "failed" in message.message %}
+        <a href="{% url 'download_failed_channel_mappings' %}" class="btn btn-sm btn-outline-danger ms-2">
+          Download Failed Rows
+        </a>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<!-- ✅ Bulk Mapping Upload -->
+<form method="post" action="{% url 'bulk_map_channel_skus' %}" enctype="multipart/form-data" class="mb-4">
+  {% csrf_token %}
+  <div class="row">
+    <div class="col-md-6">
+      <input type="file" name="file" accept=".xls,.xlsx" required class="form-control mb-2">
+    </div>
+    <div class="col-md-6">
+      <button type="submit" class="btn btn-outline-primary">Upload Bulk Mapping</button>
+      <a href="{% url 'download_channel_mapping_template' %}" class="btn btn-outline-secondary ms-2">
+        Download Template
+      </a>
+    </div>
+  </div>
+</form>
+
+<!-- 🔍 Search & Filter -->
+<form method="get" class="row g-3 mb-3 align-items-center">
+  <div class="col-md-4">
+    <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search Channel SKU, FSN, Master SKU, Product Name...">
+  </div>
+  <div class="col-md-4">
+    <select name="filter" class="form-select">
+      <option value="all" {% if filter == 'all' %}selected{% endif %}>All Listings</option>
+      <option value="mapped" {% if filter == 'mapped' %}selected{% endif %}>Only Mapped</option>
+      <option value="unmapped" {% if filter == 'unmapped' %}selected{% endif %}>Only Unmapped</option>
+    </select>
+  </div>
+  <div class="col-md-auto">
+    <button type="submit" class="btn btn-outline-primary">
+      <i class="fa-solid fa-magnifying-glass me-1"></i> Search & Filter
+    </button>
+  </div>
+</form>
+
+<!-- 🔁 Save Mapping Form -->
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="q" value="{{ query }}">
+  <input type="hidden" name="sort" value="{{ sort }}">
+  <input type="hidden" name="dir" value="{{ dir }}">
+  <input type="hidden" name="per_page" value="{{ per_page }}">
+  <input type="hidden" name="page" value="{{ page_obj.number }}">
+
+  <div class="mb-3">
+    <button type="submit" class="btn btn-primary me-2">Save Mappings</button>
+    <button type="submit" name="bulk_delete" value="1" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete selected mappings?')">
+      Delete Selected
+    </button>
+    <button type="submit" name="reset_all" value="1" class="btn btn-outline-warning ms-2" onclick="return confirm('Reset all mappings on this page?')">
+      Reset All Mappings on Page
+    </button>
+  </div>
+
+  <table class="table table-bordered table-striped align-middle">
+    <thead class="table-light text-dark fw-semibold">
+      <tr>
+        <th></th>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=channel_sku&dir={% if sort == 'channel_sku' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-code me-1"></i> Channel SKU
+            {% if sort == 'channel_sku' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=fsn&dir={% if sort == 'fsn' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-barcode me-1"></i> FSN
+            {% if sort == 'fsn' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="?{% if query %}q={{ query }}&{% endif %}sort=master_sku__sku_code&dir={% if sort == 'master_sku__sku_code' and dir == 'asc' %}desc{% else %}asc{% endif %}" class="text-decoration-none text-dark">
+            <i class="fa-solid fa-barcode me-1"></i> Master SKU
+            {% if sort == 'master_sku__sku_code' %}
+              <i class="fa-solid {% if dir == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+            {% endif %}
+          </a>
+        </th>
+        <th>Status</th>
+        <th><i class="fa-solid fa-gear me-1"></i> Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for listing in listings %}
+      <tr>
+        <td><input type="checkbox" name="selected_ids" value="{{ listing.id }}"></td>
+        <td>{{ listing.channel_sku }}</td>
+        <td>{{ listing.fsn }}</td>
+        <td>
+          <select name="mapping_{{ listing.id }}" class="form-select sku-dropdown">
+            <option value="">-- Select Master SKU --</option>
+            {% for sku in skus %}
+            <option value="{{ sku.id }}" {% if listing.master_sku and listing.master_sku.id == sku.id %}selected{% endif %}>
+              {{ sku.sku_code }}
+            </option>
+            {% endfor %}
+          </select>
+        </td>
+        <td>
+          {% if listing.master_sku %}
+            <span class="badge bg-success">Mapped</span>
+          {% else %}
+            <span class="badge bg-secondary">Unmapped</span>
+          {% endif %}
+        </td>
+        <td>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ listing.id }})">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</form>
+
+<!-- 📄 Pagination Footer -->
+<div class="mt-4">
+  {% include 'inventory_manager/components/pagination_footer.html' %}
+</div>
+
+<!-- ✅ Activate Select2 for Master SKU dropdowns -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    $('.sku-dropdown').select2({
+      width: '100%',
+      placeholder: 'Select SKU...',
+      allowClear: true
+    });
+  });
+
+  function confirmDelete(id) {
+    if (confirm("Delete this listing?")) {
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = `/channel/delete/${id}/`;
+
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrfmiddlewaretoken';
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+
+      document.body.appendChild(form);
+      form.submit();
+    }
+  }
+</script>
+{% endblock %}

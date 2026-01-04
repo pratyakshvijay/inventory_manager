@@ -1,0 +1,1 @@
+web: gunicorn flipkart_inventory.wsgi
