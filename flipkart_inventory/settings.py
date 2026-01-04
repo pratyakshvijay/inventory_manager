@@ -29,10 +29,10 @@ SECRET_KEY = 'django-insecure-#f1)s#_djdr@=!j4(89#i&!8&g!_d9aw%gs%^le#c$m=f*3m@b
 DEBUG = False
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://web-production-ba391.up.railway.app",
+    "https://divine.up.railway.app",
 ]
 
-ALLOWED_HOSTS = ["web-production-ba391.up.railway.app",]
+ALLOWED_HOSTS = ["divine.up.railway.app",]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
