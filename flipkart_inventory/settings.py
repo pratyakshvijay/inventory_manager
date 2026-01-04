@@ -33,6 +33,14 @@ CSRF_TRUSTED_ORIGINS = [
 
 ALLOWED_HOSTS = ["web-production-ba391.up.railway.app",]
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SAMESITE = "Lax"
+
 
 # Application definition
 
