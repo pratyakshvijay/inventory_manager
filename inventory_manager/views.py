@@ -216,7 +216,7 @@ def dashboard(request):
     categories = sorted(set(sku.product_name.split()[0] for sku in skus if sku.product_name))
     sync_logs = SyncLog.objects.filter(user=request.user).order_by('-timestamp')[:5]
 
-    product_names = SKU.objects.values_list("product_name", flat=True).distinct().order_by("product_name")
+    product_names = (SKU.objects.filter(user=request.user).values_list("product_name", flat=True).distinct().order_by("product_name"))
 
 
     return render(request, "inventory_manager/dashboard.html", {
