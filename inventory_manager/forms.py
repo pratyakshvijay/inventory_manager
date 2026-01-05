@@ -3,9 +3,17 @@ from .models import SKU
 from django.forms import formset_factory
 
 class ManualAdjustForm(forms.Form):
-    sku = forms.ModelChoiceField(queryset=SKU.objects.all())
+    sku = forms.ModelChoiceField(queryset=SKU.objects.none())
     quantity_change = forms.IntegerField()
     notes = forms.CharField(widget=forms.Textarea, required=False)
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields["sku"].queryset = SKU.objects.filter(user=user)
+
 
 class ExcelUploadForm(forms.Form):
     excel_file = forms.FileField(label='Upload Excel File')
@@ -39,9 +47,11 @@ class BagItemForm(forms.Form):
     }))
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         # ✅ Ensure proper queryset for form validation and rendering
-        self.fields['sku'].queryset = SKU.objects.all()
+        if user:
+            self.fields["sku"].queryset = SKU.objects.filter(user=user)
 
 # Formset definition
 BagItemFormSet = formset_factory(BagItemForm, extra=1)

@@ -559,7 +559,7 @@ def update_stock(request):
 @login_required
 def manual_adjust(request):
     if request.method == 'POST':
-        form = ManualAdjustForm(request.POST)
+        form = ManualAdjustForm(request.POST, user=request.user)
         reset = request.POST.get('reset') == 'on'
         if form.is_valid():
             sku = form.cleaned_data['sku']
@@ -587,7 +587,7 @@ def manual_adjust(request):
             messages.success(request, f'Stock updated for {sku.sku_code}.')
             return redirect('manual_adjust')
     else:
-        form = ManualAdjustForm()
+        form = ManualAdjustForm(user=request.user)
 
     # Prepare data for stock display
     stock_data = {str(sku.pk): sku.stock_quantity for sku in SKU.objects.filter(user=request.user)}
@@ -933,7 +933,10 @@ def add_bag(request):
 
     if request.method == 'POST':
         bag_form = BagForm(request.POST)
-        formset = BagItemFormSet(request.POST)
+        formset = BagItemFormSet(
+            request.POST,
+            form_kwargs={"user": request.user}
+        )
 
         if bag_form.is_valid() and formset.is_valid():
             reflect = 'reflect_in_rack' in request.POST
@@ -970,6 +973,7 @@ def add_bag(request):
 
                     # 💾 Save item
                     BagItem.objects.create(
+                        user=request.user,
                         bag=bag,
                         sku=sku,
                         quantity=qty,
@@ -1089,7 +1093,7 @@ def edit_bag(request, pk):
 
     if request.method == 'POST':
         bag_form = BagForm(request.POST)
-        formset = BagItemFormSet(request.POST)
+        formset = BagItemFormSet(request.POST, form_kwargs={"user": request.user})
 
         if bag_form.is_valid() and formset.is_valid():
             reflect = 'reflect_in_rack' in request.POST
@@ -1160,6 +1164,7 @@ def edit_bag(request, pk):
                 else:
                     # ➕ New SKU added to bag
                     BagItem.objects.create(
+                        user=request.user,
                         bag=bag,
                         sku=sku,
                         quantity=quantity,
