@@ -90,8 +90,8 @@
                     <li><a class="dropdown-item text-white {% if request.path == '/master-skus/' %}active{% endif %}" href="{% url 'master_skus' %}"><i class="fa-solid fa-database me-1"></i> View Master SKUs</a></li>
                     <li><a class="text-white d-block py-1 {% if request.path == '/add-sku/' %}active{% endif %}" href="{% url 'add_sku' %}"><i class="fa-solid fa-plus me-1"></i> Add SKU</a></li>
                     <li><a class="text-white d-block py-1 {% if request.path == '/upload-sku-excel/' %}active{% endif %}" href="{% url 'upload_sku_excel' %}"><i class="fa-solid fa-file-arrow-up me-1"></i> Upload Master SKUs</a></li>
-                    <li><a class="text-white d-block py-1 {% if request.path == '/channel/mapping/' %}active{% endif %}" href="{% url 'view_channel_listings' %}"><i class="fa-solid fa-link me-1"></i> Alternate SKUs</a></li>
-                    <li><a class="text-white d-block py-1 {% if request.path == '/channel/upload/' %}active{% endif %}" href="{% url 'upload_channel_listing' %}"><i class="fa-solid fa-file-import me-1"></i> Upload Alternate SKUs</a></li>
+                    <!-- <li><a class="text-white d-block py-1 {% if request.path == '/channel/mapping/' %}active{% endif %}" href="{% url 'view_channel_listings' %}"><i class="fa-solid fa-link me-1"></i> Alternate SKUs</a></li>
+                    <li><a class="text-white d-block py-1 {% if request.path == '/channel/upload/' %}active{% endif %}" href="{% url 'upload_channel_listing' %}"><i class="fa-solid fa-file-import me-1"></i> Upload Alternate SKUs</a></li> -->
                 </ul>
             </div>
         </div>
@@ -111,7 +111,7 @@
                     <li><a class="text-white d-block py-1 {% if request.path == '/adjust/' %}active{% endif %}" href="{% url 'manual_adjust' %}"><i class="fa-solid fa-sliders me-1"></i> Manual Adjustment</a></li>
                     <li><a class="text-white d-block py-1 {% if request.path == '/inventory-history/' %}active{% endif %}" href="{% url 'inventory_history' %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Inventory History</a></li>
                     <li><a class="dropdown-item text-white {% if request.path == '/low-stock/' %}active{% endif %}" href="{% url 'low_stock_alert' %}"><i class="fa-solid fa-triangle-exclamation me-1"></i> Low Stock Alerts</a></li>
-                    <li><a class="text-white d-block py-1 {% if request.path == '/sync-logs/' %}active{% endif %}" href="{% url 'sync_logs' %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Sync Logs</a></li>
+                    <!-- <li><a class="text-white d-block py-1 {% if request.path == '/sync-logs/' %}active{% endif %}" href="{% url 'sync_logs' %}"><i class="fa-solid fa-clock-rotate-left me-1"></i> Sync Logs</a></li> -->
                 </ul>
             </div> 
         </div>
