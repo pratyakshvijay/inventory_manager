@@ -2,6 +2,7 @@ from django.db.models import Sum
 from .models import SKU
 
 def total_stock_context(request):
+    print("CONTEXT USER:", request.user)
     if not request.user.is_authenticated:
         return {
             'total_stock': 0,

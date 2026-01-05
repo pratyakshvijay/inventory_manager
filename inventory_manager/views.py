@@ -620,7 +620,7 @@ def upload_excel(request):
             qty = int(row['Quantity'])
 
             try:
-                sku = SKU.objects.get(sku_code=sku_code)
+                sku = SKU.objects.get(user=request.user,sku_code=sku_code)
                 if reset_stock:
                     # ✅ Reset mode: overwrite quantity
                     change = qty - sku.stock_quantity
@@ -672,7 +672,7 @@ def upload_order_file(request):
                 qty = int(row.get('Quantity', 0))
 
                 # Try to match directly to Master SKU
-                sku = SKU.objects.filter(sku_code=raw_sku).first()
+                sku = SKU.objects.filter(user=request.user,sku_code=raw_sku).first()
 
                 # If not found, look up in ChannelListing and get master SKU
                 if not sku:
@@ -892,7 +892,7 @@ def low_stock_alert(request):
     dir = request.GET.get("dir", "asc")
 
     # Build base queryset
-    queryset = SKU.objects.filter(stock_quantity__lte=threshold)
+    queryset = SKU.objects.filter(user=request.user,stock_quantity__lte=threshold)
 
     # Determine sort direction
     if sort not in ["sku_code", "product_name", "stock_quantity"]:
@@ -1361,7 +1361,7 @@ def upload_rack_excel(request):
             qty = int(row['Qty'])
 
             # Try to find SKU directly
-            sku = SKU.objects.filter(sku_code=raw_sku).first()
+            sku = SKU.objects.filter(user=request.user, sku_code=raw_sku).first()
 
             # If not found, look for alternate SKU in ChannelListing
             if not sku:
@@ -1437,7 +1437,7 @@ def export_rack_excel(request):
 def ajax_rack_stock(request):
     sku_id = request.GET.get("sku_id")
     try:
-        sku = SKU.objects.get(id=sku_id)
+        sku = SKU.objects.get(id=sku_id, user=request.user)
         rack = Rack.objects.filter(user=request.user,sku=sku).first()
         qty = rack.quantity if rack else 0
         return JsonResponse({"success": True, "quantity": qty})
