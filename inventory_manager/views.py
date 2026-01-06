@@ -527,7 +527,7 @@ def view_channel_listings(request):
     })
 
 @login_required
-@csrf_exempt
+@require_POST
 def update_stock(request):
     if request.method == "POST":
         sku_id = request.POST.get("sku_id")
@@ -535,7 +535,7 @@ def update_stock(request):
         notes = request.POST.get("notes", "Inline update")
 
         try:
-            sku = SKU.objects.filter(user=request.user).get(id=sku_id)
+            sku = SKU.objects.get(id=sku_id, user=request.user)
             new_qty = int(new_qty)
             delta = new_qty - sku.stock_quantity
             if delta != 0:

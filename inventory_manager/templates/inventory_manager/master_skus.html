@@ -97,10 +97,26 @@
 
 <!-- ⚙️ Inline Update Script -->
 <script>
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
 function updateStock(skuId) {
-  const quantity = document.getElementById('stock-' + skuId).value;
-  const btn = document.getElementById('btn-' + skuId);
-  const checkIcon = document.getElementById('check-' + skuId);
+  const quantity = document.getElementById("stock-" + skuId).value;
+  const btn = document.getElementById("btn-" + skuId);
+  const checkIcon = document.getElementById("check-" + skuId);
 
   btn.disabled = true;
   checkIcon.style.display = "none";
@@ -108,25 +124,39 @@ function updateStock(skuId) {
   fetch("/ajax/update-stock/", {
     method: "POST",
     headers: {
-      "X-CSRFToken": "{{ csrf_token }}",
-      "Content-Type": "application/x-www-form-urlencoded"
+      "X-CSRFToken": getCookie("csrftoken"),
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    body: `sku_id=${skuId}&quantity=${quantity}&notes=Updated from Master SKUs`
+    credentials: "same-origin",
+    body: new URLSearchParams({
+      sku_id: skuId,
+      quantity: quantity,
+      notes: "Updated from Master SKUs",
+    }),
   })
-  .then(res => res.json())
-  .then(data => {
-    if (data.success) {
-      checkIcon.style.display = "inline-block";
-      setTimeout(() => checkIcon.style.display = "none", 2000);
-    } else {
-      alert("❌ Error updating stock: " + (data.error || "unknown"));
-    }
-  })
-  .catch(() => alert("❌ Failed to connect."))
-  .finally(() => {
-    btn.disabled = false;
-  });
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      if (data.success) {
+        checkIcon.style.display = "inline-block";
+        setTimeout(() => (checkIcon.style.display = "none"), 2000);
+      } else {
+        alert("❌ Error updating stock: " + (data.error || "unknown"));
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("❌ Failed to connect.");
+    })
+    .finally(() => {
+      btn.disabled = false;
+    });
 }
+
 </script>
 
 {% endblock %}
