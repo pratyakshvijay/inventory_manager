@@ -121,7 +121,7 @@ function updateStock(skuId) {
   btn.disabled = true;
   checkIcon.style.display = "none";
 
-  fetch("/ajax/update-stock/", {
+  fetch(window.location.origin + "/ajax/update-stock/", {
     method: "POST",
     headers: {
       "X-CSRFToken": getCookie("csrftoken"),
